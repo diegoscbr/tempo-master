@@ -39,7 +39,6 @@ struct MainMenuView: View {
                         NavigationLink(destination: JustRideSetupView()) {
                             MenuButton(
                                 title: "Just Ride",
-                                subtitle: "Free ride at cadence",
                                 icon: "bicycle"
                             )
                         }
@@ -48,7 +47,6 @@ struct MainMenuView: View {
                         NavigationLink(destination: TimedRideSetupView()) {
                             MenuButton(
                                 title: "Timed Ride",
-                                subtitle: "Set duration and cadence",
                                 icon: "timer"
                             )
                         }
@@ -57,7 +55,6 @@ struct MainMenuView: View {
                         NavigationLink(destination: IntervalSetupView()) {
                             MenuButton(
                                 title: "Intervals",
-                                subtitle: "Work/rest intervals",
                                 icon: "chart.line.uptrend.xyaxis"
                             )
                         }
@@ -66,7 +63,6 @@ struct MainMenuView: View {
                         NavigationLink(destination: PreDefinedWorkoutsView()) {
                             MenuButton(
                                 title: "Workouts",
-                                subtitle: "Structured training plans",
                                 icon: "list.bullet.clipboard"
                             )
                         }
@@ -74,7 +70,6 @@ struct MainMenuView: View {
                         // Custom Workout Button (disabled for now)
                         MenuButton(
                             title: "Custom Workout",
-                            subtitle: "Coming soon",
                             icon: "slider.horizontal.3",
                             disabled: true
                         )
@@ -90,7 +85,6 @@ struct MainMenuView: View {
 
 struct MenuButton: View {
     let title: String
-    let subtitle: String
     let icon: String
     var disabled: Bool = false
 
@@ -103,15 +97,9 @@ struct MenuButton: View {
                 .frame(width: 50)
 
             // Text
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(disabled ? .white.opacity(0.3) : .white)
-
-                Text(subtitle)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(disabled ? .white.opacity(0.2) : .white.opacity(0.6))
-            }
+            Text(title)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(disabled ? .white.opacity(0.3) : .white)
 
             Spacer()
 
