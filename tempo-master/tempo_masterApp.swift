@@ -11,7 +11,7 @@ import SwiftUI
 struct tempo_masterApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            DisplayView()
         }
     }
 }
