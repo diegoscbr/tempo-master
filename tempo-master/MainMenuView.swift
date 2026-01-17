@@ -39,7 +39,7 @@ struct MainMenuView: View {
                         NavigationLink(destination: JustRideSetupView()) {
                             MenuButton(
                                 title: "Just Ride",
-                                subtitle: "Free ride with cadence guide",
+                                subtitle: "Free ride at cadence",
                                 icon: "bicycle"
                             )
                         }
@@ -65,7 +65,7 @@ struct MainMenuView: View {
                         // Pre-Defined Workouts Button
                         NavigationLink(destination: PreDefinedWorkoutsView()) {
                             MenuButton(
-                                title: "Pre-Defined Workouts",
+                                title: "Workouts",
                                 subtitle: "Structured training plans",
                                 icon: "list.bullet.clipboard"
                             )

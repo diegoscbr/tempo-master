@@ -25,7 +25,7 @@ struct JustRideSetupView: View {
                     .font(.system(size: 42, weight: .bold))
                     .foregroundColor(.white)
 
-                Text("Free ride with cadence guide")
+                Text("Free ride at cadence")
                     .font(.system(size: 18, weight: .regular))
                     .foregroundColor(.white.opacity(0.7))
 

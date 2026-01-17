@@ -58,29 +58,33 @@ struct DisplayView: View {
                     .position(x: geometry.size.width / 2, y: geometry.size.height - floorOffset - ballSize / 2)
 
                 // Bouncing white ball with squish effect
-                Circle()
-                    .fill(.white)
-                    .frame(width: ballSize, height: ballSize)
-                    .scaleEffect(x: scaleX * ballScale, y: scaleY * ballScale)
-                    .offset(y: yOffset)
-                    .position(x: geometry.size.width / 2, y: geometry.size.height - floorOffset - ballSize / 2)
-                    .onAppear {
-                        screenHeight = geometry.size.height
-                        startBouncing()
-                    }
-                    .onChange(of: settings.isRiding) { oldValue, newValue in
-                        if !newValue {
-                            endRideAnimation(geometry: geometry)
-                        }
-                    }
-                    .onChange(of: settings.isPaused) { oldValue, newValue in
-                        if newValue {
-                            shouldBounce = false
-                        } else {
-                            shouldBounce = true
+                if #available(iOS 17.0, *) {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: ballSize, height: ballSize)
+                        .scaleEffect(x: scaleX * ballScale, y: scaleY * ballScale)
+                        .offset(y: yOffset)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height - floorOffset - ballSize / 2)
+                        .onAppear {
+                            screenHeight = geometry.size.height
                             startBouncing()
                         }
-                    }
+                        .onChange(of: settings.isRiding) { oldValue, newValue in
+                            if !newValue {
+                                endRideAnimation(geometry: geometry)
+                            }
+                        }
+                        .onChange(of: settings.isPaused) { oldValue, newValue in
+                            if newValue {
+                                shouldBounce = false
+                            } else {
+                                shouldBounce = true
+                                startBouncing()
+                            }
+                        }
+                } else {
+                    // Fallback on earlier versions
+                }
 
                 // Top bar with timer and pause button
                 VStack {

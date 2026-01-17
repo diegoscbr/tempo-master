@@ -20,7 +20,7 @@ struct PreDefinedWorkoutsView: View {
             ScrollView {
                 VStack(spacing: 25) {
                     // Title
-                    Text("Pre-Defined Workouts")
+                    Text("Workouts")
                         .font(.system(size: 38, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.top, 20)
@@ -32,10 +32,10 @@ struct PreDefinedWorkoutsView: View {
                     VStack(spacing: 20) {
                         // Tempo Blocks
                         WorkoutCard(
-                            title: "Tempo Blocks",
-                            description: "3x10 min at 85-90 RPM\n5 min easy between",
+                            title: "Blocks",
+                            description: "3x10 min at 85-90 RPM @ 80% \n5 min rests",
                             duration: "40 minutes",
-                            difficulty: "Moderate"
+                            difficulty: "Easy"
                         ) {
                             let settings = RideSettings()
                             settings.startInterval(
@@ -51,9 +51,9 @@ struct PreDefinedWorkoutsView: View {
 
                         // Sweet Spot
                         WorkoutCard(
-                            title: "Sweet Spot",
-                            description: "2x20 min at 88-93 RPM\n10 min recovery between",
-                            duration: "50 minutes",
+                            title: "The Sweet Spot",
+                            description: "4x20 min at 88-93 RPM @85%\n10 min recovery ",
+                            duration: "110 minutes",
                             difficulty: "Hard"
                         ) {
                             let settings = RideSettings()
@@ -62,7 +62,7 @@ struct PreDefinedWorkoutsView: View {
                                 workDuration: 1200, // 20 min
                                 restBpm: 65,
                                 restDuration: 600, // 10 min
-                                totalRounds: 2
+                                totalRounds: 4
                             )
                             selectedSettings = settings
                             navigateToRide = true
@@ -71,8 +71,8 @@ struct PreDefinedWorkoutsView: View {
                         // Steady State
                         WorkoutCard(
                             title: "Steady State",
-                            description: "3x15 min at 80-85 RPM\n5 min easy between",
-                            duration: "55 minutes",
+                            description: "4x15 min at 80-85 RPM\n5 min rest",
+                            duration: "75 minutes",
                             difficulty: "Moderate"
                         ) {
                             let settings = RideSettings()
@@ -81,7 +81,7 @@ struct PreDefinedWorkoutsView: View {
                                 workDuration: 900, // 15 min
                                 restBpm: 68,
                                 restDuration: 300, // 5 min
-                                totalRounds: 3
+                                totalRounds: 4
                             )
                             selectedSettings = settings
                             navigateToRide = true
