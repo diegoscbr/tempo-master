@@ -85,11 +85,29 @@ struct DisplayView: View {
                 // Top bar with timer and pause button
                 VStack {
                     HStack {
-                        // Countdown Timer (top left)
-                        Text(timeString(from: settings.timeRemaining))
-                            .font(.system(size: 36, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.white)
-                            .padding(.leading, 24)
+                        // Timer and interval info (top left)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(timerString())
+                                .font(.system(size: 36, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.white)
+
+                            // Show interval info if in interval mode
+                            if settings.workoutMode == .interval {
+                                HStack(spacing: 8) {
+                                    Text("Round \(settings.currentRound)/\(getTotalRounds())")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.7))
+
+                                    Text("•")
+                                        .foregroundColor(.white.opacity(0.5))
+
+                                    Text(settings.isWorkPhase ? "WORK" : "REST")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(settings.isWorkPhase ? neonBlue : neonMagenta)
+                                }
+                            }
+                        }
+                        .padding(.leading, 24)
 
                         Spacer()
 
@@ -281,10 +299,25 @@ struct DisplayView: View {
         }
     }
 
+    private func timerString() -> String {
+        switch settings.workoutMode {
+        case .justRide:
+            // Show elapsed time counting up
+            return timeString(from: settings.timeElapsed)
+        case .timed, .interval:
+            // Show remaining time counting down
+            return timeString(from: settings.timeRemaining)
+        }
+    }
+
     private func timeString(from timeInterval: TimeInterval) -> String {
         let minutes = Int(timeInterval) / 60
         let seconds = Int(timeInterval) % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    private func getTotalRounds() -> Int {
+        return settings.totalRounds
     }
 }
 
