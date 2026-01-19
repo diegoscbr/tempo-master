@@ -75,6 +75,70 @@ struct DisplayView: View {
                     .frame(width: 8, height: 8)
                     .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
 
+                // Cadence adjuster for Just Ride mode
+                if settings.workoutMode == .justRide {
+                    VStack {
+                        Spacer()
+
+                        // Cadence control
+                        HStack(spacing: 40) {
+                            // Decrease BPM button
+                            Button(action: {
+                                if settings.bpm > 40 {
+                                    settings.bpm -= 5
+                                    restartRotationForNewBpm()
+                                }
+                            }) {
+                                Image(systemName: "minus")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 56, height: 56)
+                                    .background(
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(neonMagenta.opacity(0.5), lineWidth: 2)
+                                    )
+                            }
+
+                            // BPM display
+                            VStack(spacing: 4) {
+                                Text("\(settings.bpm)")
+                                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                Text("BPM")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                            .frame(width: 100)
+
+                            // Increase BPM button
+                            Button(action: {
+                                if settings.bpm < 200 {
+                                    settings.bpm += 5
+                                    restartRotationForNewBpm()
+                                }
+                            }) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 56, height: 56)
+                                    .background(
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(neonBlue.opacity(0.5), lineWidth: 2)
+                                    )
+                            }
+                        }
+                        .padding(.bottom, 80)
+                    }
+                }
+
                 if #available(iOS 17.0, *) {
                     Color.clear
                         .onAppear {
@@ -278,6 +342,22 @@ struct DisplayView: View {
     private func resumeRotation() {
         isAnimating = true
         startRotation()
+    }
+
+    private func restartRotationForNewBpm() {
+        // Stop current rotation and pulse loop
+        rotationTimer?.invalidate()
+        rotationTimer = nil
+
+        // Restart with new BPM (keep current angle for smooth transition)
+        let degreesPerSecond = 360.0 / fullRotationDuration
+        let frameRate: Double = 60.0
+        let degreesPerFrame = degreesPerSecond / frameRate
+
+        rotationTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / frameRate, repeats: true) { _ in
+            guard self.isAnimating && self.settings.isRiding && !self.settings.isPaused else { return }
+            self.rotationAngle += degreesPerFrame
+        }
     }
 
     private func endRideAnimation() {
