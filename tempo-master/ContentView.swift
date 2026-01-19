@@ -22,6 +22,9 @@ struct DisplayView: View {
     @State private var magentaRippleScale: CGFloat = 1.0
     @State private var magentaRippleOpacity: Double = 0.0
 
+    // 12 o'clock indicator
+    @State private var topIndicatorColor: Color = Color(red: 0.0, green: 0.7, blue: 1.0)
+
     private let neonBlue = Color(red: 0.0, green: 0.7, blue: 1.0)
     private let neonMagenta = Color(red: 1.0, green: 0.0, blue: 0.8)
     private let circleSize: CGFloat = 200
@@ -75,8 +78,15 @@ struct DisplayView: View {
                     .frame(width: 8, height: 8)
                     .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
 
-                // Cadence adjuster for Just Ride mode
-                if settings.workoutMode == .justRide {
+                // 12 o'clock indicator - alternates color when rods hit
+                Image(systemName: "triangle.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(topIndicatorColor)
+                    .rotationEffect(.degrees(180))
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2 - circleSize * 0.8 - 20)
+
+                // Cadence adjuster for Just Ride and Timed modes
+                if settings.workoutMode == .justRide || settings.workoutMode == .timed {
                     VStack {
                         Spacer()
 
@@ -314,6 +324,11 @@ struct DisplayView: View {
         blueRippleScale = 1.0
         blueRippleOpacity = 0.8
 
+        // Change indicator to blue
+        withAnimation(.easeOut(duration: 0.15)) {
+            topIndicatorColor = neonBlue
+        }
+
         // Animate ripple expansion and fade
         withAnimation(.easeOut(duration: beatInterval * 1.5)) {
             blueRippleScale = 2.5
@@ -325,6 +340,11 @@ struct DisplayView: View {
         // Reset magenta ripple
         magentaRippleScale = 1.0
         magentaRippleOpacity = 0.8
+
+        // Change indicator to magenta
+        withAnimation(.easeOut(duration: 0.15)) {
+            topIndicatorColor = neonMagenta
+        }
 
         // Animate ripple expansion and fade
         withAnimation(.easeOut(duration: beatInterval * 1.5)) {
