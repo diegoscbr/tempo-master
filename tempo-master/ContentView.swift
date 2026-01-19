@@ -11,27 +11,29 @@ struct DisplayView: View {
     @ObservedObject var settings: RideSettings
     @Environment(\.dismiss) private var dismiss
 
-    @State private var yOffset: CGFloat = 0
-    @State private var scaleX: CGFloat = 1.0
-    @State private var scaleY: CGFloat = 1.0
-    @State private var ballScale: CGFloat = 1.0
-    @State private var shouldBounce: Bool = true
-    @State private var screenHeight: CGFloat = 0
     @State private var showPauseMenu: Bool = false
-    @State private var rippleScale: CGFloat = 0.1
-    @State private var rippleOpacity: Double = 0.8
-    @State private var ceilingRippleScale: CGFloat = 0.1
-    @State private var ceilingRippleOpacity: Double = 0.8
-    @State private var maxBounceHeight: CGFloat = 0
+    @State private var rotationAngle: Double = 0
+    @State private var isAnimating: Bool = false
+    @State private var rotationTimer: Timer?
 
-    private let ballSize: CGFloat = 60
-    private let floorOffset: CGFloat = 50
+    // Pulse/ripple state for circles
+    @State private var blueRippleScale: CGFloat = 1.0
+    @State private var blueRippleOpacity: Double = 0.0
+    @State private var magentaRippleScale: CGFloat = 1.0
+    @State private var magentaRippleOpacity: Double = 0.0
+
     private let neonBlue = Color(red: 0.0, green: 0.7, blue: 1.0)
     private let neonMagenta = Color(red: 1.0, green: 0.0, blue: 0.8)
+    private let circleSize: CGFloat = 200
 
     // Calculate beat interval in seconds (60 seconds / BPM)
     private var beatInterval: Double {
         60.0 / Double(settings.bpm)
+    }
+
+    // Full rotation takes 2 beats (each rod hits top once per 2 beats, but they alternate)
+    private var fullRotationDuration: Double {
+        beatInterval * 2
     }
 
     var body: some View {
@@ -41,45 +43,53 @@ struct DisplayView: View {
                 Color.black
                     .ignoresSafeArea()
 
-                // Floor ripple effect (blue - at floor position)
+                // Blue ripple effect (expands outward)
                 Circle()
                     .stroke(neonBlue, lineWidth: 4)
-                    .frame(width: ballSize, height: ballSize)
-                    .scaleEffect(rippleScale)
-                    .opacity(rippleOpacity)
-                    .position(x: geometry.size.width / 2, y: geometry.size.height - floorOffset - ballSize / 2)
+                    .frame(width: circleSize, height: circleSize)
+                    .scaleEffect(blueRippleScale)
+                    .opacity(blueRippleOpacity)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
 
-                // Ceiling ripple effect (magenta - at floor position)
+                // Magenta ripple effect (expands outward)
                 Circle()
                     .stroke(neonMagenta, lineWidth: 4)
-                    .frame(width: ballSize, height: ballSize)
-                    .scaleEffect(ceilingRippleScale)
-                    .opacity(ceilingRippleOpacity)
-                    .position(x: geometry.size.width / 2, y: geometry.size.height - floorOffset - ballSize / 2)
+                    .frame(width: circleSize * 0.6, height: circleSize * 0.6)
+                    .scaleEffect(magentaRippleScale)
+                    .opacity(magentaRippleOpacity)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
 
-                // Bouncing white ball with squish effect
+                // Left pedal rod (blue) - rotates clockwise, starts at top
+                RodView(color: neonBlue, length: circleSize * 0.8, thickness: 12)
+                    .rotationEffect(.degrees(rotationAngle))
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+
+                // Right pedal rod (magenta) - rotates clockwise, starts at bottom (180° offset)
+                RodView(color: neonMagenta, length: circleSize * 0.8, thickness: 12)
+                    .rotationEffect(.degrees(rotationAngle + 180))
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+
+                // Small center dot
+                Circle()
+                    .fill(.white)
+                    .frame(width: 8, height: 8)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+
                 if #available(iOS 17.0, *) {
-                    Circle()
-                        .fill(.white)
-                        .frame(width: ballSize, height: ballSize)
-                        .scaleEffect(x: scaleX * ballScale, y: scaleY * ballScale)
-                        .offset(y: yOffset)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height - floorOffset - ballSize / 2)
+                    Color.clear
                         .onAppear {
-                            screenHeight = geometry.size.height
-                            startBouncing()
+                            startRotation()
                         }
                         .onChange(of: settings.isRiding) { oldValue, newValue in
                             if !newValue {
-                                endRideAnimation(geometry: geometry)
+                                endRideAnimation()
                             }
                         }
                         .onChange(of: settings.isPaused) { oldValue, newValue in
                             if newValue {
-                                shouldBounce = false
+                                pauseRotation()
                             } else {
-                                shouldBounce = true
-                                startBouncing()
+                                resumeRotation()
                             }
                         }
                 } else {
@@ -197,110 +207,84 @@ struct DisplayView: View {
         }
     }
 
-    private func startBouncing() {
-        guard shouldBounce && settings.isRiding else { return }
+    private func startRotation() {
+        guard settings.isRiding else { return }
+        isAnimating = true
 
-        maxBounceHeight = screenHeight - floorOffset - ballSize - 100
-        bounce(maxHeight: maxBounceHeight)
+        // Calculate degrees per frame for 60fps
+        let degreesPerSecond = 360.0 / fullRotationDuration
+        let frameRate: Double = 60.0
+        let degreesPerFrame = degreesPerSecond / frameRate
+
+        rotationTimer?.invalidate()
+        rotationTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / frameRate, repeats: true) { _ in
+            guard self.isAnimating && self.settings.isRiding && !self.settings.isPaused else { return }
+            self.rotationAngle += degreesPerFrame
+        }
+
+        // Start pulse loop (separate from rotation)
+        startPulseLoop()
     }
 
-    private func bounce(maxHeight: CGFloat) {
-        guard shouldBounce && settings.isRiding else { return }
+    private func startPulseLoop() {
+        guard isAnimating && settings.isRiding && !settings.isPaused else { return }
 
-        // Trigger floor ripple at the start of bounce (when ball hits floor)
-        triggerFloorRipple()
+        // Blue pulse now (blue rod at top)
+        triggerBluePulse()
 
-        // Ball rises (decelerates as it goes up - easeOut) - 1 full beat
-        withAnimation(.easeOut(duration: beatInterval)) {
-            yOffset = -maxHeight
-            scaleX = 1.0
-            scaleY = 1.0
+        // Magenta pulse after 1 beat (magenta rod reaches top)
+        DispatchQueue.main.asyncAfter(deadline: .now() + beatInterval) {
+            guard self.isAnimating && self.settings.isRiding && !self.settings.isPaused else { return }
+            self.triggerMagentaPulse()
         }
 
-        // Trigger ceiling ripple when ball reaches the top
-        DispatchQueue.main.asyncAfter(deadline: .now() + beatInterval) {
-            guard self.shouldBounce && self.settings.isRiding else { return }
-            self.triggerCeilingRipple()
-        }
-
-        // Ball falls (accelerates as it goes down - easeIn) - 1 full beat
-        DispatchQueue.main.asyncAfter(deadline: .now() + beatInterval) {
-            guard self.shouldBounce && self.settings.isRiding else { return }
-
-            withAnimation(.easeIn(duration: beatInterval * 0.9)) {
-                yOffset = 0
-            }
-
-            // Squish happens right at impact (last 10% of fall)
-            DispatchQueue.main.asyncAfter(deadline: .now() + beatInterval * 0.8) {
-                guard self.shouldBounce && self.settings.isRiding else { return }
-
-                withAnimation(.easeOut(duration: beatInterval * 0.2)) {
-                    scaleX = 1.3
-                    scaleY = 0.7
-                }
-
-                // Repeat the cycle
-                DispatchQueue.main.asyncAfter(deadline: .now() + beatInterval * 0.2) {
-                    bounce(maxHeight: maxHeight)
-                }
-            }
+        // Repeat cycle after 2 beats (full rotation)
+        DispatchQueue.main.asyncAfter(deadline: .now() + fullRotationDuration) {
+            guard self.isAnimating && self.settings.isRiding && !self.settings.isPaused else { return }
+            self.startPulseLoop()
         }
     }
 
-    private func triggerFloorRipple() {
-        // Reset floor ripple
-        rippleScale = 1.0
-        rippleOpacity = 0.8
+    private func triggerBluePulse() {
+        // Reset blue ripple
+        blueRippleScale = 1.0
+        blueRippleOpacity = 0.8
 
         // Animate ripple expansion and fade
-        withAnimation(.easeOut(duration: beatInterval * 2)) {
-            rippleScale = 8.0
-            rippleOpacity = 0.0
+        withAnimation(.easeOut(duration: beatInterval * 1.5)) {
+            blueRippleScale = 2.5
+            blueRippleOpacity = 0.0
         }
     }
 
-    private func triggerCeilingRipple() {
-        // Reset ceiling ripple
-        ceilingRippleScale = 1.0
-        ceilingRippleOpacity = 0.8
+    private func triggerMagentaPulse() {
+        // Reset magenta ripple
+        magentaRippleScale = 1.0
+        magentaRippleOpacity = 0.8
 
         // Animate ripple expansion and fade
-        withAnimation(.easeOut(duration: beatInterval * 2)) {
-            ceilingRippleScale = 8.0
-            ceilingRippleOpacity = 0.0
+        withAnimation(.easeOut(duration: beatInterval * 1.5)) {
+            magentaRippleScale = 3.0
+            magentaRippleOpacity = 0.0
         }
     }
 
-    private func endRideAnimation(geometry: GeometryProxy) {
-        shouldBounce = false
+    private func pauseRotation() {
+        isAnimating = false
+        rotationTimer?.invalidate()
+        rotationTimer = nil
+    }
 
-        // Calculate offset to center the ball
-        // Current position Y: geometry.size.height - floorOffset - ballSize / 2
-        // Target position Y: geometry.size.height / 2
-        // Offset needed: target - current
-        let centerY = geometry.size.height / 2
-        let currentY = geometry.size.height - floorOffset - ballSize / 2
-        let centerOffset = centerY - currentY
+    private func resumeRotation() {
+        isAnimating = true
+        startRotation()
+    }
 
-        // Stop ball at center of screen
-        withAnimation(.easeOut(duration: 0.5)) {
-            yOffset = centerOffset
-            scaleX = 1.0
-            scaleY = 1.0
-        }
-
-        // Expand ball to fill screen
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            withAnimation(.easeInOut(duration: 0.8)) {
-                ballScale = max(geometry.size.width, geometry.size.height) / ballSize * 2
-            }
-
-            // Dismiss back to home
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                dismiss()
-            }
-        }
+    private func endRideAnimation() {
+        isAnimating = false
+        rotationTimer?.invalidate()
+        rotationTimer = nil
+        dismiss()
     }
 
     private func timerString() -> String {
@@ -322,6 +306,20 @@ struct DisplayView: View {
 
     private func getTotalRounds() -> Int {
         return settings.totalRounds
+    }
+}
+
+// Rod/clock hand view that extends upward from center
+struct RodView: View {
+    let color: Color
+    let length: CGFloat
+    let thickness: CGFloat
+
+    var body: some View {
+        Capsule()
+            .fill(color)
+            .frame(width: thickness, height: length)
+            .offset(y: -length / 2) // Anchor at bottom (center of clock), extend upward
     }
 }
 
